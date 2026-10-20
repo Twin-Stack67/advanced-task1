@@ -1,22 +1,33 @@
 import express from 'express';
+import type { Request, Response } from 'express-serve-static-core';
 import dotenv from 'dotenv';
+import cors from 'cors';
 import connectDB from './config/db';
+import authRoutes from './routes/auth.routes';
+import userRoutes from './routes/user.routes';
+import companyRoutes from './routes/company.routes';
 
-// 1. Load the environment variables from the .env file
 dotenv.config();
-
-// 2. Connect to the database
 connectDB();
 
 const app = express();
 
-// Middleware to parse JSON bodies
+app.use(
+  cors({
+    origin: 'http://localhost:3000',
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
-// Basic test route
-app.get('/', (req, res) => {
+app.get('/', (req: Request, res: Response) => {
   res.send('API is running...');
 });
+
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/company', companyRoutes);
 
 const PORT = process.env.PORT || 5000;
 

@@ -18,9 +18,11 @@ export default function LoginPage() {
   const [detectedDomain, setDetectedDomain] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleEmailChange = (val: string) => {
     setEmail(val);
+    setErrorMessage(null); // Clear errors when typing
     if (val.includes("@") && !workspace.trim()) {
       const parts = val.split("@");
       if (parts[1] && parts[1].length > 3) {
@@ -59,23 +61,56 @@ export default function LoginPage() {
     setWorkspace(ws);
     setEmail(em);
     setPassword(pass);
+    setErrorMessage(null);
     setDetectedDomain(company);
     switchTenant(tenantId);
     showToast(`Loaded ${roleLabel} persona credentials`);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return;
 
     setIsSubmitting(true);
-    setTimeout(() => {
+    setErrorMessage(null);
+
+    try {
+      // Connect to the actual Node.js backend
+      // Uses the environment variable if available, otherwise falls back to localhost:5000
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      
+      const response = await fetch(`${apiUrl}/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || "Invalid credentials");
+      }
+
+      // Success! Store the token and user data
+      localStorage.setItem("token", result.data.token);
+      localStorage.setItem("user", JSON.stringify(result.data.user));
+
       setSubmitSuccess(true);
-      showToast("Tenant verified! Welcome to TenantPulse.");
+      showToast("Authentication successful! Welcome to TenantPulse.");
+      
+      // Redirect to dashboard
       setTimeout(() => {
         router.push("/dashboard");
       }, 1000);
-    }, 1200);
+
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "An error occurred during authentication";
+      setErrorMessage(message);
+      showToast(message);
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -128,6 +163,14 @@ export default function LoginPage() {
               Enter your credentials to access your company dashboard.
             </p>
           </div>
+
+          {/* Error Message Display */}
+          {errorMessage && (
+            <div className="mb-4 p-3 bg-error/10 border border-error/20 rounded-xl text-error text-sm font-medium flex items-center gap-2">
+              <span className="material-symbols-outlined text-[18px]">error</span>
+              {errorMessage}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             {/* Workspace Field */}
@@ -306,8 +349,8 @@ export default function LoginPage() {
                 onClick={() =>
                   quickFill(
                     "acme",
-                    "sarah.admin@acmecorp.io",
-                    "Admin•Enterprise2024!",
+                    "admin@company.com", // Updated to match the backend registration email
+                    "yourpassword123",  // Updated to match the backend registration password
                     "Admin - Acme Corp",
                     "Acme Corp",
                     "acme_prod_9821"
@@ -321,79 +364,15 @@ export default function LoginPage() {
                   </span>
                   <div className="truncate">
                     <p className="text-xs font-semibold text-on-surface truncate group-hover:text-primary transition-colors">
-                      Admin - Acme Corp
+                      Admin - Active Backend Account
                     </p>
                     <p className="text-[11px] text-secondary font-mono truncate">
-                      sarah.admin@acmecorp.io
+                      admin@company.com
                     </p>
                   </div>
                 </div>
                 <span className="text-[10px] bg-secondary-container text-on-secondary-container px-2 py-0.5 rounded font-medium shrink-0">
                   Tier 1
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  quickFill(
-                    "novasystems",
-                    "marcus.mgr@novasystems.dev",
-                    "Mgr•Passcode99#",
-                    "Manager - Nova Systems",
-                    "Nova Systems",
-                    "novasystems_dev_314"
-                  )
-                }
-                className="group w-full flex items-center justify-between p-2 rounded-lg bg-surface-container-lowest hover:bg-surface-container transition-all text-left shadow-sm border border-outline-variant/10"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="w-6 h-6 rounded bg-tertiary-container text-on-tertiary flex items-center justify-center text-xs font-mono font-bold shrink-0">
-                    M
-                  </span>
-                  <div className="truncate">
-                    <p className="text-xs font-semibold text-on-surface truncate group-hover:text-primary transition-colors">
-                      Manager - Nova Systems
-                    </p>
-                    <p className="text-[11px] text-secondary font-mono truncate">
-                      marcus.mgr@novasystems.dev
-                    </p>
-                  </div>
-                </div>
-                <span className="text-[10px] bg-surface-container text-on-surface-variant px-2 py-0.5 rounded font-medium shrink-0">
-                  Tier 2
-                </span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() =>
-                  quickFill(
-                    "",
-                    "elena.ops@vertexlogistics.com",
-                    "Emp•SecureToken!1",
-                    "Employee (Auto-detect)",
-                    "Vertex Logistics",
-                    "vertex_ops_552"
-                  )
-                }
-                className="group w-full flex items-center justify-between p-2 rounded-lg bg-surface-container-lowest hover:bg-surface-container transition-all text-left shadow-sm border border-outline-variant/10"
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="w-6 h-6 rounded bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center text-xs font-mono font-bold shrink-0">
-                    E
-                  </span>
-                  <div className="truncate">
-                    <p className="text-xs font-semibold text-on-surface truncate group-hover:text-primary transition-colors">
-                      Employee (Domain Auto-detect)
-                    </p>
-                    <p className="text-[11px] text-secondary font-mono truncate">
-                      elena.ops@vertexlogistics.com
-                    </p>
-                  </div>
-                </div>
-                <span className="text-[10px] bg-surface-container text-on-surface-variant px-2 py-0.5 rounded font-medium shrink-0">
-                  Member
                 </span>
               </button>
             </div>
@@ -423,26 +402,6 @@ export default function LoginPage() {
             <span className="text-[11px] text-secondary font-medium">
               Protected by enterprise multi-tenant security · SOC2 Compliant
             </span>
-          </div>
-
-          <div className="flex items-center gap-3 text-[11px] text-outline mt-1">
-            <span className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
-              All Systems Normal
-            </span>
-            <span>•</span>
-            <span>TLS 1.3 Strict Isolation</span>
-            <span>•</span>
-            <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                showToast("Compliance Portal: All 14 controls verified (SOC-2 Type II).");
-              }}
-              className="hover:text-secondary underline underline-offset-2"
-            >
-              Compliance Portal
-            </a>
           </div>
         </div>
       </div>
