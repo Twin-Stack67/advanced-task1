@@ -65,15 +65,15 @@ async function request<T>(
 ): Promise<T> {
   const token = getStoredToken();
 
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...(options.headers as Record<string, string>),
-  };
+  const headers = new Headers(options.headers ?? {});
 
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+  if (!headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
   }
 
+  if (token) {
+    headers.set('Authorization', 'Bearer ' + token);
+  }
   const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
 
   let response: Response;

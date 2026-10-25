@@ -28,7 +28,8 @@ export const createUser = async (
   companyId: string,
   input: CreateUserInput
 ): Promise<IUser> => {
-  const existingUser = await User.findOne({ email: input.email });
+  const normalizedEmail = input.email.trim().toLowerCase();
+  const existingUser = await User.findOne({ email: normalizedEmail, companyId });
   if (existingUser) {
     throw new Error('A user with this email already exists');
   }
@@ -38,6 +39,7 @@ export const createUser = async (
 
   const user = await User.create({
     ...input,
+    email: normalizedEmail,
     password: hashedPassword,
     companyId,
     isDeleted: false,

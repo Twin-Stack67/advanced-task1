@@ -13,6 +13,8 @@ export const registerCompanyWithAdmin = async (
   companyName: string,
   adminData: RegisterAdminInput
 ) => {
+  const normalizedEmail = adminData.email.trim().toLowerCase();
+
   // 1. Create Company
   const company = await Company.create({ name: companyName });
 
@@ -23,6 +25,7 @@ export const registerCompanyWithAdmin = async (
   // 3. Create Admin User linked to the Company ID
   const user = await User.create({
     ...adminData,
+    email: normalizedEmail,
     password: hashedPassword,
     role: UserRole.ADMIN,
     companyId: company._id,
@@ -39,7 +42,8 @@ export const registerCompanyWithAdmin = async (
 };
 
 export const loginUser = async (email: string, pass: string) => {
-  const user = await User.findOne({ email, isDeleted: false });
+  const normalizedEmail = email.trim().toLowerCase();
+  const user = await User.findOne({ email: normalizedEmail, isDeleted: false });
   if (!user) throw new Error('Invalid credentials');
 
   const isMatch = await bcrypt.compare(pass, user.password);

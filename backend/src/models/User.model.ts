@@ -27,7 +27,6 @@ const UserSchema: Schema = new Schema(
     email: { 
       type: String, 
       required: [true, 'Email is required'], 
-      unique: true, 
       lowercase: true, 
       trim: true 
     },
@@ -54,5 +53,7 @@ const UserSchema: Schema = new Schema(
   },
   { timestamps: true }
 );
+
+UserSchema.index({ companyId: 1, email: 1 }, { unique: true });
 
 export default mongoose.model<IUser>('User', UserSchema);
