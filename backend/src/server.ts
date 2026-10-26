@@ -19,4 +19,7 @@ async function startServer(): Promise<void> {
   }
 }
 
-void startServer();
+// Local development ke liye server start karega
+if (process.env.NODE_ENV !== 'production') {
+  void startServer();
+}
