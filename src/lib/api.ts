@@ -12,9 +12,11 @@ import {
   UpdateEmployeePayload,
 } from '@/types';
 
-// Environment variable for backend API configuration
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, '') || 'http://localhost:5000/api';
+const configuredApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
+const API_BASE_URL = (
+  configuredApiBaseUrl ||
+  (process.env.NODE_ENV === 'development' ? 'http://localhost:5000/api' : '/api')
+).replace(/\/+$/, '');
 
 export const TOKEN_STORAGE_KEY = 'tp_auth_token';
 export const USER_STORAGE_KEY = 'tp_auth_user';

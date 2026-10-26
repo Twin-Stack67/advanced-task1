@@ -1,16 +1,27 @@
 import mongoose from 'mongoose';
 
+let connectionPromise: Promise<typeof mongoose> | undefined;
+
 const connectDB = async (): Promise<void> => {
-  try {
-    // process.env.MONGO_URI is pulled directly from your .env file
-    const conn = await mongoose.connect(process.env.MONGO_URI as string);
-    
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
-  } catch (error) {
-    console.error(`Database connection error: ${(error as Error).message}`);
-    // Exit the process if the database connection fails
-    process.exit(1);
+  const uri = process.env.MONGO_URI;
+  if (!uri) {
+    throw new Error('MONGO_URI environment variable is required');
   }
+
+  if (mongoose.connection.readyState === 1) return;
+
+  if (mongoose.connection.readyState === 0) {
+    connectionPromise = undefined;
+  }
+
+  if (!connectionPromise) {
+    connectionPromise = mongoose.connect(uri).catch((error: unknown) => {
+      connectionPromise = undefined;
+      throw error;
+    });
+  }
+
+  await connectionPromise;
 };
 
 export default connectDB;
