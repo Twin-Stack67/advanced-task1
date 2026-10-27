@@ -12,11 +12,21 @@ import {
   UpdateEmployeePayload,
 } from '@/types';
 
-const configuredApiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
-const API_BASE_URL = (
-  configuredApiBaseUrl ||
-  (process.env.NODE_ENV === 'development' ? 'http://localhost:5000/api' : '/api')
-).replace(/\/+$/, '');
+// Vercel deployment ke liye optimized URL resolution
+const getConfiguredApiBaseUrl = (): string => {
+  const configured = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
+  if (configured) {
+    return configured.replace(/\/+$/, '');
+  }
+  // Production (Vercel) par relative path '/api' use hoga
+  if (process.env.NODE_ENV === 'production') {
+    return '/api';
+  }
+  // Local development fallback
+  return 'http://localhost:5000/api';
+};
+
+const API_BASE_URL = getConfiguredApiBaseUrl();
 
 export const TOKEN_STORAGE_KEY = 'tp_auth_token';
 export const USER_STORAGE_KEY = 'tp_auth_user';
@@ -76,7 +86,10 @@ async function request<T>(
   if (token) {
     headers.set('Authorization', 'Bearer ' + token);
   }
-  const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  
+  // Safe URL formatting ensuring no double slashes
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const url = `${API_BASE_URL}${cleanEndpoint}`;
 
   let response: Response;
   try {
@@ -106,7 +119,6 @@ async function request<T>(
     
     // Automatically clear token on 401 Unauthorized
     if (response.status === 401 && typeof window !== 'undefined') {
-      // Don't auto-clear if attempting to login
       if (!endpoint.includes('/auth/login')) {
         clearStoredAuth();
       }
