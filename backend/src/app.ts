@@ -1,11 +1,24 @@
 import express from 'express';
-import type { Request, Response } from 'express-serve-static-core';
+import type { Request, Response, NextFunction } from 'express-serve-static-core';
 import cors from 'cors';
+import connectDB from './config/db'; // 1. Import database connection
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import companyRoutes from './routes/company.routes';
 
 const app = express();
+
+// 2. Global Database Middleware
+// Ensures MongoDB connects before any route handles a request
+app.use(async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    console.error('Database connection error in middleware:', error);
+    res.status(500).json({ message: 'Internal server error: Database connection failed' });
+  }
+});
 
 app.use(
   cors({
